@@ -1,0 +1,35 @@
+service: Transaction Wallet API
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  region: us-east-1
+  stage: dev
+
+  environment:
+    NODE_ENV: development
+    FRONTEND_LOCAL_BARBESHOP: ${env:FRONTEND_LOCAL_BARBESHOP}
+    JWT_PRIVATE_KEY: ${env:JWT_PRIVATE_KEY}
+    JWT_PUBLIC_KEY: ${env:JWT_PUBLIC_KEY}
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+custom:
+  serverless-offline:
+    httpPort: 3333
+
+package:
+  patterns:
+    - dist/**
+
+functions:
+  api:
+    handler: dist/src/main.handler
+    timeout: 30
+    events:
+      - httpApi:
+          path: /
+          method: ANY
+      - httpApi:
+          path: /{proxy+}
+          method: ANY

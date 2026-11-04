@@ -1,0 +1,21 @@
+image: node:20
+
+pipelines:
+  branches:
+    master:
+      - step:
+          name: 🧪 Testes
+          caches:
+            - node
+          script:
+            - npm install --legacy-peer-deps
+            - npm run build
+            - yarn test
+      - step:
+          name: 🚀 Deploy to AWS Lambda
+          caches:
+            - node
+          script:
+            - npm install --legacy-peer-deps
+            - npm run build # 👈 AQUI
+            - npx serverless@3 deploy --stage dev
