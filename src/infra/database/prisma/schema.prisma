@@ -16,12 +16,11 @@ model User {
   name                String               @db.VarChar(150)
   password_hash       String               @db.VarChar(255)
   mfa_required        Boolean
-  mfa_code_hash       String?              @db.VarChar(255)
-  mfa_code_expires_at DateTime?
   document            String               @unique() @db.VarChar(30)
   mfaCodes            MfaCode[]
   passwordResetTokens PasswordResetToken[]
   refreshTokens       RefreshToken[]
+  wallet              Wallet?
 }
 
 model MfaCode {
@@ -64,4 +63,27 @@ model RefreshToken {
 
   @@index([user_id])
   @@index([expires_at])
+}
+
+model Wallet {
+  id                    String        @id @db.Uuid
+  user_id               String        @unique @db.Uuid // Adicionado @unique para garantir a relação 1:1
+  user                  User          @relation(fields: [user_id], references: [id])
+  balance               Decimal       @db.Decimal(10, 2)
+  created_at            DateTime
+  updated_at            DateTime
+  sent_transactions     Transaction[] @relation("SenderWallet")
+  received_transactions Transaction[] @relation("ReceiverWallet")
+}
+
+model Transaction {
+  id                 String   @id @db.Uuid
+  sender_wallet_id   String   @db.Uuid
+  receiver_wallet_id String   @db.Uuid
+  amount             Decimal  @db.Decimal(10, 2)
+  status             String
+  created_at         DateTime
+  updated_at         DateTime
+  sender_wallet      Wallet   @relation("SenderWallet", fields: [sender_wallet_id], references: [id])
+  receiver_wallet    Wallet   @relation("ReceiverWallet", fields: [receiver_wallet_id], references: [id])
 }

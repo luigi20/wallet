@@ -3,7 +3,7 @@ import { IsString } from 'class-validator';
 
 export class LogoutDTO {
   @ApiProperty({
-    description: 'Refresh token da sessão que será encerrada.',
+    description: 'Token de desafio utilizado para conseguir access token.',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   @IsString()

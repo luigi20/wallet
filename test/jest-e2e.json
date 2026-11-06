@@ -1,12 +1,15 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
-  "rootDir": "..",
+  "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@modules/(.*)$": "<rootDir>/src/modules/$1"
-  }
+    "^@modules/(.*)$": "<rootDir>/../src/modules/$1",
+    "^infra/(.*)$": "<rootDir>/../src/infra/$1"
+  },
+  "setupFiles": ["dotenv/config"],
+  "transformIgnorePatterns": ["node_modules/(?!(@nestjs/terminus)/)"]
 }

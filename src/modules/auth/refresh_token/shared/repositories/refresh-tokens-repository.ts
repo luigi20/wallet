@@ -3,7 +3,6 @@ import { IRefreshTokensRepository } from './abstract_class/irefresh-tokens-repos
 import { Refresh_Tokens } from '../models/refresh-tokens';
 import { PrismaService } from 'infra/database/prisma/prisma.service';
 import { RefreshTokensMapper } from 'infra/database/mappers/RefreshTokensMapper';
-import { PasswordResetTokensMapper } from 'infra/database/mappers/PasswordResetTokensMapper';
 
 @Injectable()
 class RefreshTokensRepository implements IRefreshTokensRepository {
@@ -28,6 +27,16 @@ class RefreshTokensRepository implements IRefreshTokensRepository {
       });
     if (!refresh_hash) return null;
     return refresh_hash.id;
+  }
+
+  async find_active_by_hash(
+    token_hash: string,
+    now: Date,
+  ): Promise<Refresh_Tokens | null> {
+    const record = await this.prisma.getPrismaClient().refreshToken.findFirst({
+      where: { token_hash, revoked_at: false, expires_at: { gt: now } },
+    });
+    return record ? RefreshTokensMapper.toDomain(record) : null;
   }
 
   async find_one(

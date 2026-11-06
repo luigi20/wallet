@@ -3,13 +3,23 @@ import { AppError } from '@modules/utils/app_error';
 import * as argon2 from 'argon2';
 import { SignUpService } from '../service/signup.service';
 import { makeUser } from '@modules/auth/user/shared/models/test/user-factory';
+import { InMemoryWalletRepository } from '@modules/business/wallet/shared/repositories/test/in-memory-wallet-repository';
+import { InMemoryTransactionManager } from 'infra/database/protocols/InMemoryTransactionManager';
 
 jest.mock('argon2');
 describe('Test in route signup', () => {
   let userRepository: InMemoryUserRepository;
+  let wallet_repository: InMemoryWalletRepository;
+  let transaction_manager: InMemoryTransactionManager;
+
+  const email_service_mock = {
+    send: jest.fn().mockResolvedValue(undefined),
+  };
   beforeEach(() => {
     jest.clearAllMocks();
     userRepository = new InMemoryUserRepository();
+    transaction_manager = new InMemoryTransactionManager();
+    wallet_repository = new InMemoryWalletRepository();
     // Populando os repositórios com dados iniciais
   });
 
@@ -21,7 +31,12 @@ describe('Test in route signup', () => {
         },
       }),
     );
-    const signUpService = new SignUpService(userRepository);
+    const signUpService = new SignUpService(
+      userRepository,
+      wallet_repository,
+      email_service_mock,
+      transaction_manager,
+    );
     expect(
       signUpService.execute({
         email: 'luisfoco@gmail.com',
@@ -32,7 +47,12 @@ describe('Test in route signup', () => {
     ).rejects.toThrow(new AppError('Credenciais inválidas'));
   });
   it('should signup, because email does not exist', async () => {
-    const signUpService = new SignUpService(userRepository);
+    const signUpService = new SignUpService(
+      userRepository,
+      wallet_repository,
+      email_service_mock,
+      transaction_manager,
+    );
     const result = await signUpService.execute({
       email: 'luisfoco@gmail.com',
       password: '123456',

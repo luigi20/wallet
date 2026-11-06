@@ -14,5 +14,5 @@ export class ValidateMFADTO {
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   @IsString()
-  token: string;
+  mfa_token: string;
 }

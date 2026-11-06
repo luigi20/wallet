@@ -89,7 +89,7 @@ export class MFA_Code {
   }
 
   public get created_at(): Date {
-    return this.props.updated_at;
+    return this.props.created_at;
   }
 
   public set created_at(created_at: Date) {

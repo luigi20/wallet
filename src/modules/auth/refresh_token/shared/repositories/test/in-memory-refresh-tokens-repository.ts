@@ -10,14 +10,30 @@ export class InMemoryRefreshTokensRepository implements IRefreshTokensRepository
     this.list_refresh_tokens.push(data);
   }
 
+  async find_active_by_hash(
+    token_hash: string,
+    now: Date,
+  ): Promise<Refresh_Tokens | null> {
+    return (
+      this.list_refresh_tokens.find(
+        (item) =>
+          item.token_hash === token_hash &&
+          item.revoked_at === false &&
+          item.expires_at > now,
+      ) ?? null
+    );
+  }
+
   async find_one(
-    id: string,
+    user_id: string,
     revoked: boolean,
     now: Date,
   ): Promise<Refresh_Tokens | null> {
     const refresh_tokens = this.list_refresh_tokens.find(
       (item) =>
-        item.id === id && item.revoked_at === revoked && item.expires_at > now,
+        item.user_id === user_id &&
+        item.revoked_at === revoked &&
+        item.expires_at > now,
     );
     if (!refresh_tokens) return null;
     return refresh_tokens;

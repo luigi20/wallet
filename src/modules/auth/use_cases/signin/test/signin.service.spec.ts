@@ -9,6 +9,9 @@ jest.mock('argon2');
 describe('Test in route signin', () => {
   let user_repository: InMemoryUserRepository;
   let refresh_token_repository: InMemoryRefreshTokensRepository;
+  const generate_mfa_service = {
+    execute: jest.fn().mockResolvedValue(undefined), // Adicione undefined aqui
+  };
   const jwt_service = {
     sign: jest.fn().mockReturnValue('fake-jwt-token'),
   };
@@ -25,6 +28,7 @@ describe('Test in route signin', () => {
       user_repository,
       jwt_service as any,
       refresh_token_repository,
+      generate_mfa_service as any,
     );
     expect(
       signInService.execute({
@@ -50,6 +54,7 @@ describe('Test in route signin', () => {
       user_repository,
       jwt_service as any,
       refresh_token_repository,
+      generate_mfa_service as any,
     );
     expect(
       signInService.execute({
@@ -76,6 +81,7 @@ describe('Test in route signin', () => {
       user_repository,
       jwt_service as any,
       refresh_token_repository,
+      generate_mfa_service as any,
     );
     await expect(
       signInService.execute({
@@ -102,6 +108,7 @@ describe('Test in route signin', () => {
       user_repository,
       jwt_service as any,
       refresh_token_repository,
+      generate_mfa_service as any,
     );
     const result = await signInService.execute({
       email: 'luisfoco@gmail.com',
@@ -121,8 +128,10 @@ describe('Test in route signin', () => {
       expect.objectContaining({
         sub: expect.any(String),
         type: 'access',
-        mfa_pending: false,
+        mfa_required: false,
         iss: 'saas-auth',
+        email: 'luisfoco@gmail.com',
+        name: 'Pedro',
       }),
       { expiresIn: '15m' },
     );
@@ -152,6 +161,7 @@ describe('Test in route signin', () => {
       user_repository,
       jwt_service as any,
       refresh_token_repository,
+      generate_mfa_service as any,
     );
     const result = await signInService.execute({
       email: 'luisfoco@gmail.com',

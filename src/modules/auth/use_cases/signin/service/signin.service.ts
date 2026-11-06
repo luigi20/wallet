@@ -3,10 +3,10 @@ import { IRefreshTokensRepository } from '@modules/auth/refresh_token/shared/rep
 import { IUserRepository } from '@modules/auth/user/shared/repositories/abstract_class/IUser-repository';
 import { AppError } from '@modules/utils/app_error';
 import { generateHash } from '@modules/utils/functions';
-import { entity_name } from '@modules/utils/types/types';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
+import { GenerateMFAService } from './generate-mfa.service';
 
 interface ISignInRequest {
   email: string;
@@ -26,6 +26,7 @@ export class SignInService {
     private readonly user_repository: IUserRepository,
     private readonly jwt_service: JwtService,
     private readonly refresh_token_repository: IRefreshTokensRepository,
+    private readonly generate_mfa_service: GenerateMFAService,
   ) {}
 
   public async execute({
@@ -44,27 +45,29 @@ export class SignInService {
         {
           sub: user.id,
           type: 'mfa',
-          mfa_pending: true,
+          mfa_required: true,
           iss: 'saas-auth',
         },
         {
           expiresIn: '10m',
         },
       );
-      //mandar email
+      this.generate_mfa_service.execute({
+        email: user.email,
+        type: 'login',
+      });
       return {
         mfa_required: true,
         mfa_token: mfa_token,
       };
     } else {
-      const mfa_token = this.jwt_service.sign(
+      const access_token = this.jwt_service.sign(
         {
           sub: user.id,
           email: user.email,
           name: user.name,
           mfa_required: user.mfa_required,
           type: 'access',
-          mfa_pending: false,
           iss: 'saas-auth',
         },
         {
@@ -91,7 +94,7 @@ export class SignInService {
       await this.refresh_token_repository.create(refreshToken);
       return {
         mfa_required: false,
-        access_token: mfa_token,
+        access_token: access_token,
         refresh_token: refresh_token,
       };
     }

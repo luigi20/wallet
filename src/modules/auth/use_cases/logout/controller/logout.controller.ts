@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -13,23 +14,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { LogoutService } from '../service/logout.service';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt_auth_guard';
+import { Request, Response } from 'express';
 import { LogoutDTO } from '../dto/logoutDTO';
-import { TokenTypeRequired } from '@modules/auth/decorators/token-type.decorator';
-import { MemberRole, TokenType } from '@modules/utils/enum';
-import { RolesGuard } from '@modules/auth/guards/roles_guards';
-import { Roles } from '@modules/auth/decorators/roles.decorator';
-import { AuthGuardAccess } from '@modules/auth/guards/auth_guard_access';
 
 @ApiTags('Auth')
 @ApiBearerAuth('access-token')
-@UseGuards(AuthGuardAccess, RolesGuard)
-@TokenTypeRequired(TokenType.ACCESS)
-@Roles(
-  MemberRole.ADMINISTRADOR,
-  MemberRole.RECEPCIONISTA,
-  MemberRole.CLIENTE,
-  MemberRole.BARBEIRO,
-)
+@UseGuards(JwtAuthGuard)
 @Controller('auth')
 export class LogoutController {
   constructor(private readonly logout_service: LogoutService) {}
@@ -58,7 +49,6 @@ export class LogoutController {
     description: 'Usuário não possui permissão para realizar esta operação.',
   })
   public async Logout(@Body() data: LogoutDTO) {
-    const token = await this.logout_service.execute(data.refresh_token);
-    return token;
+    await this.logout_service.execute(data.refresh_token);
   }
 }

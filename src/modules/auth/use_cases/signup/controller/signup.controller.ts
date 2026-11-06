@@ -5,7 +5,7 @@ import { SignUpService } from '../service/signup.service';
 
 @ApiTags('Auth')
 @Controller('auth')
-export class SignupController {
+export class SignUpController {
   constructor(private readonly signupService: SignUpService) {}
 
   @Post('signup')
@@ -15,7 +15,7 @@ export class SignupController {
       'Registra um novo usuário no sistema e retorna o token de acesso.',
   })
   @ApiResponse({
-    status: 201,
+    status: 200,
     description: 'Usuário registrado com sucesso.',
   })
   @ApiResponse({

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SignInDTO } from '../dto/signinDTO';
 import { SignInService } from '../service/signin.service';
@@ -9,13 +9,14 @@ export class SignInController {
   constructor(private readonly signInService: SignInService) {}
 
   @Post('signin')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Realizar login',
     description:
       'Autentica o usuário através do e-mail e senha e retorna o login token e as entidades disponíveis.',
   })
   @ApiResponse({
-    status: 201,
+    status: 200,
     description: 'Login realizado com sucesso.',
   })
   @ApiResponse({

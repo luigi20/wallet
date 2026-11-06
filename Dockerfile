@@ -2,16 +2,16 @@ FROM node:24-bookworm
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
+COPY package.json package-lock.json ./
 
-RUN yarn install --frozen-lockfile
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 
-RUN yarn prisma generate
+RUN npx prisma generate
 
-RUN yarn build
+RUN npm run build
 
 EXPOSE 3333
 
-CMD ["yarn", "serverless", "offline", "--host", "0.0.0.0", "--httpPort", "3333"]
+CMD ["npx", "serverless", "offline", "--host", "0.0.0.0", "--httpPort", "3333"]

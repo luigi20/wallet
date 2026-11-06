@@ -25,6 +25,18 @@ export class InMemoryPasswordResetTokensRepository implements IPasswordResetToke
     return password_reset_tokens;
   }
 
+  async find_valid(
+    user_id: string,
+    now: Date,
+  ): Promise<Password_Reset_Tokens[]> {
+    return this.list_password_reset_tokens.filter(
+      (item) =>
+        item.user_id === user_id &&
+        item.used_at === false &&
+        item.expires_at > now,
+    );
+  }
+
   async update_used(id: string): Promise<void> {
     const index = this.list_password_reset_tokens.findIndex(
       (item) => item.id === id,

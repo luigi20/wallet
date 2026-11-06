@@ -10,6 +10,11 @@ class InMemoryUserRepository implements IUserRepository {
       this.list_users[index] = data;
     }
   }
+  async set_password_hash(id: string, password_hash: string): Promise<void> {
+    const user = this.list_users.find((item) => item.id === id);
+    if (user) user.password_hash = password_hash;
+  }
+
   async update_last_login_at(id: string, last_login_at: Date): Promise<void> {
     const index = this.list_users.findIndex((item) => item.id === id);
     if (index >= 0) {
@@ -26,6 +31,11 @@ class InMemoryUserRepository implements IUserRepository {
     const user = this.list_users.find((item) => item.id === id);
     if (!user) return null;
     return user;
+  }
+  async find_by_id_select_id(id: string): Promise<string | null> {
+    const user = this.list_users.find((item) => item.id === id);
+    if (!user) return null;
+    return user.id;
   }
 
   async set_update_mfa_required(

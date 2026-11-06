@@ -5,6 +5,8 @@ import express from 'express';
 import serverless from 'serverless-http';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { LoggingInterceptor } from 'infra/interceptors/logging.interceptor';
+import { WinstonLogger, WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 let cachedServer: any;
 
@@ -16,20 +18,15 @@ async function bootstrapServer() {
       AppModule,
       new ExpressAdapter(expressApp),
     );
-
-    /**
-     * CORS
-     */
+    const winstonInstance = app.get(WINSTON_MODULE_PROVIDER);
+    app.useLogger(new WinstonLogger(winstonInstance));
+    app.useGlobalInterceptors(new LoggingInterceptor());
     app.enableCors({
-      origin: [process.env.FRONTEND_LOCAL_BARBESHOP],
+      origin: [process.env.FRONTEND_LOCAL],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true,
     });
-
-    /**
-     * Validation
-     */
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
@@ -37,18 +34,11 @@ async function bootstrapServer() {
         forbidNonWhitelisted: true,
       }),
     );
-
-    /**
-     * Swagger
-     *
-     * Swagger somente em desenvolvimento.
-     * Em produção a rota /docs não será registrada.
-     */
     if (process.env.NODE_ENV !== 'production') {
       const config = new DocumentBuilder()
-        .setTitle('Barbershop API')
+        .setTitle('Transaction Wallet API')
         .setDescription(
-          'API para gerenciamento de autenticação, perfis, entidades, membros, clientes, planos e assinaturas.',
+          'API para gerenciamento de autenticação e transferências.',
         )
         .setVersion('1.0.0')
         .addBearerAuth(
@@ -62,18 +52,11 @@ async function bootstrapServer() {
         )
         .addTag('Auth', 'Autenticação e gerenciamento de acesso')
         .addTag('MFA', 'Autenticação multifator')
-        .addTag('Profile', 'Gerenciamento de perfil')
-        .addTag('Entity', 'Gerenciamento de entidades')
-        .addTag('Entity Membership', 'Gerenciamento de membros das entidades')
-        .addTag('Entity Customer', 'Gerenciamento de clientes das entidades')
-        .addTag('Plan', 'Gerenciamento de planos')
-        .addTag('Subscription', 'Gerenciamento de assinaturas')
+        .addTag('Transaction', 'Operações para transações de carteira')
         .build();
-
       const document = SwaggerModule.createDocument(app, config);
-
       SwaggerModule.setup('docs', app, document, {
-        customSiteTitle: 'Barbershop API',
+        customSiteTitle: 'Transaction Wallet API',
         swaggerOptions: {
           persistAuthorization: true,
           displayRequestDuration: true,
@@ -83,17 +66,13 @@ async function bootstrapServer() {
         },
       });
     }
-
     await app.init();
-
     cachedServer = serverless(expressApp);
   }
-
   return cachedServer;
 }
 
 export const handler = async (event: any, context: any) => {
   const server = await bootstrapServer();
-
   return server(event, context);
 };

@@ -1,27 +1,25 @@
-import { makeEntity } from '@modules/auth/entity/shared/models/test/entity-factory';
-import { InMemoryEntityRepository } from '@modules/auth/entity/shared/repositories/test/in-memory-entity-repository';
 import { InMemoryPasswordResetTokensRepository } from '@modules/auth/password_reset_tokens/shared/repositories/test/in-memory-password-reset-tokens-repository';
 import { AppError } from '@modules/utils/app_error';
 import { PasswordResetRequestService } from '../service/password_reset_request.service';
-import { InMemoryIdentityRepository } from '@modules/auth/user/shared/repositories/test/in-memory-user-repository';
-import { makeIdentity } from '@modules/auth/user/shared/models/test/user-factory';
+import { InMemoryUserRepository } from '@modules/auth/user/shared/repositories/test/in-memory-user-repository';
+import { makeUser } from '@modules/auth/user/shared/models/test/user-factory';
 
 describe('Test in route password reset request', () => {
-  let identity_repository: InMemoryIdentityRepository;
+  let user_repository: InMemoryUserRepository;
   let password_reset_tokens_repository: InMemoryPasswordResetTokensRepository;
   const email_service_mock = {
     send: jest.fn().mockResolvedValue(undefined),
   };
   beforeEach(() => {
     // Populando os repositórios com dados iniciais
-    identity_repository = new InMemoryIdentityRepository();
+    user_repository = new InMemoryUserRepository();
     password_reset_tokens_repository =
       new InMemoryPasswordResetTokensRepository();
   });
 
-  it('should not passsword reset request, because identity not exists', async () => {
+  it('should not passsword reset request, because user not exists', async () => {
     const password_reset_tokens_service = new PasswordResetRequestService(
-      identity_repository,
+      user_repository,
       password_reset_tokens_repository,
       email_service_mock,
     );
@@ -33,15 +31,15 @@ describe('Test in route password reset request', () => {
   });
 
   it('should reset request', async () => {
-    identity_repository.list_identity.push(
-      makeIdentity({
+    user_repository.list_users.push(
+      makeUser({
         props: {
           email: 'luisfoco@gmail.com',
         },
       }),
     );
     const password_reset_tokens_service = new PasswordResetRequestService(
-      identity_repository,
+      user_repository,
       password_reset_tokens_repository,
       email_service_mock,
     );
@@ -49,6 +47,6 @@ describe('Test in route password reset request', () => {
       email: 'luisfoco@gmail.com',
     });
     expect(result).toBe('Email foi enviado');
-    expect(identity_repository.list_identity).toHaveLength(1);
+    expect(user_repository.list_users).toHaveLength(1);
   });
 });

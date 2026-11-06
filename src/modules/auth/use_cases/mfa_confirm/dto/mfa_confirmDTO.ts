@@ -3,7 +3,7 @@ import { IsBoolean, IsEmail, IsString } from 'class-validator';
 
 export class MFAConfirmDTO {
   @ApiProperty({
-    description: 'E-mail da identidade.',
+    description: 'E-mail da usuário.',
     example: 'usuario@email.com',
   })
   @IsEmail()
@@ -18,8 +18,8 @@ export class MFAConfirmDTO {
 
   @ApiProperty({
     description: 'Define se o MFA será habilitado ou desabilitado.',
-    example: true,
+    enum: [true, false],
   })
   @IsBoolean()
-  enabled_MFA: boolean;
+  enabled_mfa: boolean;
 }

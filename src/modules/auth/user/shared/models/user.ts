@@ -9,8 +9,6 @@ export interface User_Props {
   name: string;
   password_hash: string;
   status: string;
-  mfa_code: string;
-  mfa_code_expires_at: Date;
   last_login_at: Date;
   document: string;
 }
@@ -26,7 +24,6 @@ export class User {
         created_at?: Date;
         updated_at?: Date;
         last_login_at?: Date;
-        mfa_code?: string;
         mfa_required?: boolean;
         password_hash?: string;
       }
@@ -39,7 +36,6 @@ export class User {
       created_at: props.created_at ?? new Date(),
       updated_at: props.updated_at ?? new Date(),
       last_login_at: props.last_login_at ?? new Date(),
-      mfa_code: props.mfa_code ?? null,
       mfa_required: props.mfa_required ?? false,
       password_hash: props.password_hash ?? null,
     };
@@ -63,22 +59,6 @@ export class User {
 
   public set document(document: string) {
     this.props.document = document;
-  }
-
-  public get mfa_code(): string {
-    return this.props.mfa_code;
-  }
-
-  public set mfa_code(mfa_code: string) {
-    this.props.mfa_code = mfa_code;
-  }
-
-  public get mfa_code_expires_at(): Date {
-    return this.props.mfa_code_expires_at;
-  }
-
-  public set mfa_code_expires_at(mfa_code_expires_at: Date) {
-    this.props.mfa_code_expires_at = mfa_code_expires_at;
   }
 
   public get password_hash(): string {

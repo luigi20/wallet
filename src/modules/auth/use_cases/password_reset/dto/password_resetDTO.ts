@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString } from 'class-validator';
 
 export class PasswordResetDTO {
   @ApiProperty({
-    description: 'E-mail da identidade que terá a senha alterada.',
+    description: 'E-mail da usuário que terá a senha alterada.',
     example: 'usuario@email.com',
   })
   @IsEmail()

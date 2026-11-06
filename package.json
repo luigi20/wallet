@@ -1,5 +1,5 @@
 {
-  "name": "Transaction Wallet API",
+  "name": "transaction-wallet-api",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -36,6 +36,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.7",
+    "@nestjs/terminus": "^10.3.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "argon2": "^0.44.0",
@@ -47,6 +48,7 @@
     "generate-password": "^1.7.1",
     "google-auth-library": "^10.6.1",
     "jwks-rsa": "^4.0.1",
+    "nest-winston": "^2.0.0",
     "node-forge": "^1.3.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -57,7 +59,8 @@
     "rxjs": "^7.8.1",
     "secretlint": "13.0.4",
     "serverless-esbuild": "^1.57.0",
-    "serverless-http": "4.0.0"
+    "serverless-http": "4.0.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@commitlint/cli": "19.3.0",

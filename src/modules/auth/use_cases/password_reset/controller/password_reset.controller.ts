@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PasswordResetDTO } from '../dto/password_resetDTO';
 import { PasswordResetService } from '../service/password_reset.service';
@@ -8,13 +8,14 @@ import { PasswordResetService } from '../service/password_reset.service';
 export class PasswordResetController {
   constructor(private readonly passwordResetService: PasswordResetService) {}
 
-  @Post('passwordreset')
+  @HttpCode(HttpStatus.OK)
+  @Post('password_reset')
   @ApiOperation({
     summary: 'Redefinir senha',
-    description: 'Altera a senha da identidade utilizando o token de desafio.',
+    description: 'Altera a senha da usuário utilizando o token de desafio.',
   })
   @ApiResponse({
-    status: 201,
+    status: 200,
     description: 'Senha alterada com sucesso.',
   })
   @ApiResponse({

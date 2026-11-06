@@ -7,6 +7,10 @@ abstract class IPasswordResetTokensRepository {
     used: boolean,
     now: Date,
   ): Promise<Password_Reset_Tokens | null>;
+  abstract find_valid(
+    user_id: string,
+    now: Date,
+  ): Promise<Password_Reset_Tokens[]>;
   abstract update_used(id: string): Promise<void>;
 }
 export { IPasswordResetTokensRepository };

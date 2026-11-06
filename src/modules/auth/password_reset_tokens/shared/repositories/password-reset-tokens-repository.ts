@@ -34,6 +34,19 @@ class PasswordResetTokensRepository implements IPasswordResetTokensRepository {
     return PasswordResetTokensMapper.toDomain(password_reset_token);
   }
 
+  async find_valid(
+    user_id: string,
+    now: Date,
+  ): Promise<Password_Reset_Tokens[]> {
+    const records = await this.prisma
+      .getPrismaClient()
+      .passwordResetToken.findMany({
+        where: { user_id, used_at: false, expires_at: { gt: now } },
+        orderBy: { created_at: 'desc' },
+      });
+    return records.map((record) => PasswordResetTokensMapper.toDomain(record));
+  }
+
   async update_used(id: string): Promise<void> {
     await this.prisma.getPrismaClient().passwordResetToken.update({
       where: {

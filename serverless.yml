@@ -8,7 +8,7 @@ provider:
 
   environment:
     NODE_ENV: development
-    FRONTEND_LOCAL_BARBESHOP: ${env:FRONTEND_LOCAL_BARBESHOP}
+    FRONTEND_LOCAL: ${env:FRONTEND_LOCAL}
     JWT_PRIVATE_KEY: ${env:JWT_PRIVATE_KEY}
     JWT_PUBLIC_KEY: ${env:JWT_PUBLIC_KEY}
 plugins:

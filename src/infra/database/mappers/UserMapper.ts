@@ -9,7 +9,6 @@ export class UserMapper {
       last_login_at: user.last_login_at,
       name: user.name,
       document: user.document,
-      mfa_code: user.mfa_code,
       password_hash: user.password_hash,
       status: user.status,
       created_at: user.created_at,
@@ -21,6 +20,7 @@ export class UserMapper {
     return new User(
       {
         email: raw.email,
+        password_hash: raw.password_hash,
         name: raw.name,
         mfa_required: raw.mfa_required,
         status: raw.status,
@@ -28,8 +28,6 @@ export class UserMapper {
         created_at: raw.created_at,
         updated_at: raw.updated_at,
         document: raw.document,
-        mfa_code_expires_at: raw.mfa_code_expires_at,
-        mfa_code: raw.mfa_code_hash,
       },
       raw.id,
     );
