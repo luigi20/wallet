@@ -1,22 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'infra/database/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import { IUserRepository } from './abstract_class/IUser-repository';
 import { User } from '../models/user';
 import { UserMapper } from 'infra/database/mappers/UserMapper';
+import { PrismaTransactionManager } from 'infra/database/protocols/PrismaTransactionManager';
 
 @Injectable()
 class UserRepository implements IUserRepository {
   constructor(private prisma: PrismaService) {}
 
+  private getClient() {
+    return PrismaTransactionManager.getClient(this.prisma);
+  }
+
   async set_password_hash(id: string, password_hash: string): Promise<void> {
-    await this.prisma
-      .getPrismaClient()
-      .user.update({ where: { id }, data: { password_hash } });
+    await this.getClient().user.update({
+      where: { id },
+      data: { password_hash },
+    });
   }
 
   async update_last_login_at(id: string, last_login_at: Date): Promise<void> {
-    await this.prisma.getPrismaClient().user.update({
+    await this.getClient().user.update({
       where: {
         id: id,
       },
@@ -25,8 +30,9 @@ class UserRepository implements IUserRepository {
       },
     });
   }
+
   async find_by_email(email: string): Promise<User | null> {
-    const user = await this.prisma.getPrismaClient().user.findUnique({
+    const user = await this.getClient().user.findUnique({
       where: {
         email: email,
       },
@@ -36,7 +42,7 @@ class UserRepository implements IUserRepository {
   }
 
   async find_by_id(id: string): Promise<User | null> {
-    const user = await this.prisma.getPrismaClient().user.findUnique({
+    const user = await this.getClient().user.findUnique({
       where: {
         id: id,
       },
@@ -46,7 +52,7 @@ class UserRepository implements IUserRepository {
   }
 
   async find_by_id_select_id(id: string): Promise<string | null> {
-    const user = await this.prisma.getPrismaClient().user.findUnique({
+    const user = await this.getClient().user.findUnique({
       where: {
         id: id,
       },
@@ -57,16 +63,17 @@ class UserRepository implements IUserRepository {
     if (!user) return null;
     return user.id;
   }
+
   async create(data: User): Promise<void> {
     const raw = UserMapper.toPrisma(data);
-    await this.prisma.getPrismaClient().user.create({
+    await this.getClient().user.create({
       data: raw,
     });
   }
 
   async update(data: User): Promise<void> {
     const raw = UserMapper.toPrisma(data);
-    await this.prisma.getPrismaClient().user.update({
+    await this.getClient().user.update({
       where: { id: data.id },
       data: raw,
     });
@@ -76,7 +83,7 @@ class UserRepository implements IUserRepository {
     user_id: string,
     mfa_required: boolean,
   ): Promise<void> {
-    await this.prisma.getPrismaClient().user.update({
+    await this.getClient().user.update({
       where: {
         id: user_id,
       },
@@ -86,5 +93,4 @@ class UserRepository implements IUserRepository {
     });
   }
 }
-
 export { UserRepository };

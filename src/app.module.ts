@@ -6,9 +6,17 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from 'infra/database/prisma/prisma.module';
 import { WinstonModule, utilities as nestWinstonUtilities } from 'nest-winston';
 import * as winston from 'winston';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // Janela de tempo de 1 minuto
+        limit: 100, // Máximo de 100 pedidos por IP por minuto globalmente
+      },
+    ]),
     WinstonModule.forRoot({
       transports: [
         new winston.transports.Console({
@@ -48,7 +56,12 @@ import * as winston from 'winston';
     HealthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard, // Aplica o limite de tráfego globalmente
+    },
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {}

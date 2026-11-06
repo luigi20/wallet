@@ -57,13 +57,31 @@ export class TransactionReversalService {
         'O destinatário não possui saldo suficiente para que o estorno seja realizado',
         400,
       );
-    senderWallet.balance = senderWallet.balance + transaction.amount;
-    receiverWallet.balance = receiverWallet.balance - transaction.amount;
-    transaction.status = 'REVERSED';
     await this.transaction_manager.execute(async () => {
-      await this.wallet_repository.update(senderWallet);
-      await this.wallet_repository.update(receiverWallet);
-      await this.transaction_repository.update(transaction);
+      const affectedRows =
+        await this.transaction_repository.update_status_conditional(
+          transaction_id,
+          'COMPLETED',
+          'REVERSED',
+        );
+      if (!affectedRows)
+        throw new AppError(
+          'Esta transação já foi revertida ou não está num estado elegível',
+          400,
+        );
+      const success = await this.wallet_repository.decrement(
+        receiverWallet.id,
+        transaction.amount,
+      );
+      if (!success)
+        throw new AppError(
+          'O destinatário não possui saldo suficiente para que o estorno seja realizado',
+          400,
+        );
+      await this.wallet_repository.increment(
+        senderWallet.id,
+        transaction.amount,
+      );
     });
     return 'Transação revertida com sucesso';
   }

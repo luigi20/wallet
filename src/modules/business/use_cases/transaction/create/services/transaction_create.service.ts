@@ -48,17 +48,24 @@ export class TransactionCreateService {
         'Saldo da carteira é insuficiente para realizar a transferência',
         400,
       );
-    const transaction = new Transaction({
-      status: 'COMPLETED',
-      amount: amount,
-      sender_wallet_id: sender_wallet.id,
-      receiver_wallet_id: receiver_wallet.id,
-    });
     await this.transactionManager.execute(async () => {
-      sender_wallet.balance = sender_wallet.balance - amount;
-      receiver_wallet.balance = receiver_wallet.balance + amount;
-      await this.wallet_repository.update(sender_wallet);
-      await this.wallet_repository.update(receiver_wallet);
+      const success = await this.wallet_repository.decrement(
+        sender_wallet.id,
+        amount,
+      );
+      if (!success) {
+        throw new AppError(
+          'Saldo da carteira é insuficiente para realizar a transferência',
+          400,
+        );
+      }
+      await this.wallet_repository.increment(receiver_wallet.id, amount);
+      const transaction = new Transaction({
+        status: 'COMPLETED',
+        amount: amount,
+        sender_wallet_id: sender_wallet.id,
+        receiver_wallet_id: receiver_wallet.id,
+      });
       await this.transaction_repository.create(transaction);
     });
     return 'Transação realizada com sucesso';

@@ -8,11 +8,10 @@ import { extractTokenFromHtml } from '@modules/utils/functions';
 import { IEmailService } from 'infra/email/abstract class/IEmailService';
 import { randomUUID } from 'crypto';
 
-// secretlint-disable-next-line @secretlint/secretlint-rule-database-connection-string
 process.env.DATABASE_URL =
-  'postgresql://postgres:4l9u2i7s@localhost:5433/wallet?schema=public';
+  'postgresql://postgres:postgres@localhost:5433/wallet?schema=public';
 
-describe('E2E Complete Suite - Auth & Transactions', () => {
+describe('E2E Complete Suite - Auth, Wallet & Transactions', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let accessToken: string;
@@ -25,10 +24,11 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
   let access_token_transaction: string;
   let completedTransactionId: string;
   let wrong_user_id: string;
-  // 1. Cria o mock exatamente como fizeste no teste unitário
+
   const email_service_mock = {
     send: jest.fn().mockResolvedValue(undefined),
   };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -44,12 +44,14 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
     await app.init();
     prisma = app.get<PrismaService>(PrismaService);
     jwtService = app.get<JwtService>(JwtService);
+
     await prisma.getPrismaClient().transaction.deleteMany();
     await prisma.getPrismaClient().wallet.deleteMany();
     await prisma.getPrismaClient().passwordResetToken.deleteMany();
     await prisma.getPrismaClient().mfaCode.deleteMany();
     await prisma.getPrismaClient().refreshToken.deleteMany();
     await prisma.getPrismaClient().user.deleteMany();
+
     const sender = await prisma.getPrismaClient().user.create({
       data: {
         id: randomUUID(),
@@ -63,6 +65,7 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
         updated_at: new Date(),
       },
     });
+
     receiver = await prisma.getPrismaClient().user.create({
       data: {
         id: randomUUID(),
@@ -76,6 +79,7 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
         updated_at: new Date(),
       },
     });
+
     const sWallet = await prisma.getPrismaClient().wallet.create({
       data: {
         id: randomUUID(),
@@ -95,6 +99,7 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
         updated_at: new Date(),
       },
     });
+
     const wrong_user = await prisma.getPrismaClient().user.create({
       data: {
         id: randomUUID(),
@@ -109,6 +114,7 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
       },
     });
     wrong_user_id = wrong_user.id;
+
     await prisma.getPrismaClient().wallet.create({
       data: {
         id: randomUUID(),
@@ -118,8 +124,10 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
         updated_at: new Date(),
       },
     });
+
     senderWalletId = sWallet.id;
     receiverWalletId = rWallet.id;
+
     access_token_transaction = jwtService.sign(
       {
         sub: sender.id,
@@ -133,6 +141,7 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
         expiresIn: '15m',
       },
     );
+
     const transaction = await prisma.getPrismaClient().transaction.create({
       data: {
         id: randomUUID(),
@@ -191,7 +200,7 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
       expect(response.status).toBeLessThan(300);
       expect(email_service_mock.send).toHaveBeenCalled();
       const calls = email_service_mock.send.mock.calls;
-      const lastSentCall = calls[calls.length - 1][0]; // Pega a última chamada feita
+      const lastSentCall = calls[calls.length - 1][0];
       passwordResetToken = extractTokenFromHtml(lastSentCall.html);
       expect(passwordResetToken).toBeDefined();
       expect(passwordResetToken.length).toBeGreaterThan(0);
@@ -313,6 +322,42 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe('Wallet Flow (E2E)', () => {
+    it('/wallet (GET) - deve consultar o perfil e saldo da carteira com sucesso', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/wallet')
+        .set('Authorization', `Bearer ${access_token_transaction}`)
+        .expect(200);
+      expect(response.body).toHaveProperty('status', 'success');
+      expect(response.body.data).toHaveProperty('wallet_id', senderWalletId);
+      expect(response.body.data).toHaveProperty('balance');
+    });
+
+    it('/wallet/deposit (POST) - deve efetuar um depósito na carteira com sucesso', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/wallet/deposit')
+        .set('Authorization', `Bearer ${access_token_transaction}`)
+        .send({ amount: 500.0 })
+        .expect(201);
+      expect(response.text).toEqual('Depósito realizado com sucesso');
+      const wallet = await prisma.getPrismaClient().wallet.findUnique({
+        where: { id: senderWalletId },
+      });
+      expect(Number(wallet.balance)).toBeGreaterThanOrEqual(500.0);
+    });
+
+    it('/wallet/transactions (GET) - deve retornar o extrato e histórico de transações', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/wallet/transactions')
+        .set('Authorization', `Bearer ${access_token_transaction}`)
+        .expect(200);
+      expect(response.body).toHaveProperty('status', 'success');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
+    });
+  });
+
   describe('Transaction Create Flow (E2E)', () => {
     it('/transactions (POST) - deve criar uma transferência com sucesso entre carteiras', async () => {
       const response = await request(app.getHttpServer())
@@ -363,7 +408,6 @@ describe('E2E Complete Suite - Auth & Transactions', () => {
     });
 
     it('/transactions/:id/reversal (POST) - deve retornar 403 se um utilizador não-remetente tentar o estorno', async () => {
-      // Cria outra transação
       const anotherTransaction = await prisma
         .getPrismaClient()
         .transaction.create({

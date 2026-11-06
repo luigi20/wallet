@@ -7,6 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggingInterceptor } from 'infra/interceptors/logging.interceptor';
 import { WinstonLogger, WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { AppErrorFilter } from 'infra/errors/app_error.filter';
 
 let cachedServer: any;
 
@@ -21,6 +22,7 @@ async function bootstrapServer() {
     const winstonInstance = app.get(WINSTON_MODULE_PROVIDER);
     app.useLogger(new WinstonLogger(winstonInstance));
     app.useGlobalInterceptors(new LoggingInterceptor());
+    app.useGlobalFilters(new AppErrorFilter());
     app.enableCors({
       origin: [process.env.FRONTEND_LOCAL],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

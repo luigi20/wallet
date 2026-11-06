@@ -19,7 +19,6 @@ export class PrismaTransactionManager implements ITransactionManager {
     });
   }
 
-  // Método corrigido: Retorna o PrismaClient real obtido pelo wrapper
   static getClient(
     defaultClient: PrismaService,
   ): Prisma.TransactionClient | PrismaClient {

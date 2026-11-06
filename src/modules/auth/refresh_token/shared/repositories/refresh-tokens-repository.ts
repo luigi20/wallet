@@ -3,28 +3,32 @@ import { IRefreshTokensRepository } from './abstract_class/irefresh-tokens-repos
 import { Refresh_Tokens } from '../models/refresh-tokens';
 import { PrismaService } from 'infra/database/prisma/prisma.service';
 import { RefreshTokensMapper } from 'infra/database/mappers/RefreshTokensMapper';
+import { PrismaTransactionManager } from 'infra/database/protocols/PrismaTransactionManager';
 
 @Injectable()
 class RefreshTokensRepository implements IRefreshTokensRepository {
   constructor(private prisma: PrismaService) {}
+
+  private getClient() {
+    return PrismaTransactionManager.getClient(this.prisma);
+  }
+
   async create(data: Refresh_Tokens): Promise<void> {
     const raw = RefreshTokensMapper.toPrisma(data);
-    await this.prisma.getPrismaClient().refreshToken.create({
+    await this.getClient().refreshToken.create({
       data: raw,
     });
   }
 
   async find_by_hash(token_hash: string): Promise<string | null> {
-    const refresh_hash = await this.prisma
-      .getPrismaClient()
-      .refreshToken.findFirst({
-        where: {
-          token_hash: token_hash,
-        },
-        select: {
-          id: true,
-        },
-      });
+    const refresh_hash = await this.getClient().refreshToken.findFirst({
+      where: {
+        token_hash: token_hash,
+      },
+      select: {
+        id: true,
+      },
+    });
     if (!refresh_hash) return null;
     return refresh_hash.id;
   }
@@ -33,7 +37,7 @@ class RefreshTokensRepository implements IRefreshTokensRepository {
     token_hash: string,
     now: Date,
   ): Promise<Refresh_Tokens | null> {
-    const record = await this.prisma.getPrismaClient().refreshToken.findFirst({
+    const record = await this.getClient().refreshToken.findFirst({
       where: { token_hash, revoked_at: false, expires_at: { gt: now } },
     });
     return record ? RefreshTokensMapper.toDomain(record) : null;
@@ -44,23 +48,21 @@ class RefreshTokensRepository implements IRefreshTokensRepository {
     revoked: boolean,
     now: Date,
   ): Promise<Refresh_Tokens | null> {
-    const refresh_hash = await this.prisma
-      .getPrismaClient()
-      .refreshToken.findFirst({
-        where: {
-          user_id: user_id,
-          revoked_at: revoked,
-          expires_at: {
-            gt: now,
-          },
+    const refresh_hash = await this.getClient().refreshToken.findFirst({
+      where: {
+        user_id: user_id,
+        revoked_at: revoked,
+        expires_at: {
+          gt: now,
         },
-      });
+      },
+    });
     if (!refresh_hash) return null;
     return RefreshTokensMapper.toDomain(refresh_hash);
   }
 
   async update_revoked(id: string): Promise<void> {
-    await this.prisma.getPrismaClient().refreshToken.update({
+    await this.getClient().refreshToken.update({
       where: {
         id: id,
       },

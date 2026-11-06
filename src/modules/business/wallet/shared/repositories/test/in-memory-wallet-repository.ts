@@ -4,6 +4,19 @@ import { Wallet } from '../../models/wallet';
 
 @Injectable()
 class InMemoryWalletRepository implements IWalletRepository {
+  async decrement(wallet_id: string, amount: number): Promise<boolean> {
+    const wallet = this.list_wallets.find((item) => item.id === wallet_id);
+    if (!wallet) return false;
+    if (wallet.balance < amount) return false;
+    wallet.balance = wallet.balance - amount;
+    return true;
+  }
+
+  async increment(wallet_id: string, amount: number): Promise<void> {
+    const wallet = this.list_wallets.find((item) => item.id === wallet_id);
+    if (wallet) wallet.balance = wallet.balance + amount;
+  }
+
   async update(data: Wallet): Promise<void> {
     const index = this.list_wallets.findIndex((item) => item.id === data.id);
     if (index >= 0) {

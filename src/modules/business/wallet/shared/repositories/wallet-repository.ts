@@ -1,16 +1,48 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'infra/database/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import { IWalletRepository } from './abstract_class/IWallet-repository';
 import { WalletMapper } from 'infra/database/mappers/WalletMapper';
 import { Wallet } from '../models/wallet';
+import { PrismaTransactionManager } from 'infra/database/protocols/PrismaTransactionManager';
 
 @Injectable()
 class WalletRepository implements IWalletRepository {
   constructor(private prisma: PrismaService) {}
 
+  private getClient() {
+    return PrismaTransactionManager.getClient(this.prisma);
+  }
+
+  async decrement(wallet_id: string, amount: number): Promise<boolean> {
+    const result = await this.getClient().wallet.updateMany({
+      where: {
+        id: wallet_id,
+        balance: {
+          gte: amount,
+        },
+      },
+      data: {
+        balance: {
+          decrement: amount,
+        },
+      },
+    });
+    return result.count > 0;
+  }
+
+  async increment(wallet_id: string, amount: number): Promise<void> {
+    await this.getClient().wallet.updateMany({
+      where: { id: wallet_id },
+      data: {
+        balance: {
+          increment: amount,
+        },
+      },
+    });
+  }
+
   async find_by_id(id: string): Promise<Wallet | null> {
-    const wallet = await this.prisma.getPrismaClient().wallet.findUnique({
+    const wallet = await this.getClient().wallet.findUnique({
       where: {
         id: id,
       },
@@ -20,7 +52,7 @@ class WalletRepository implements IWalletRepository {
   }
 
   async find_by_user_id(user_id: string): Promise<Wallet | null> {
-    const wallet = await this.prisma.getPrismaClient().wallet.findFirst({
+    const wallet = await this.getClient().wallet.findFirst({
       where: {
         user_id: user_id,
       },
@@ -28,16 +60,17 @@ class WalletRepository implements IWalletRepository {
     if (!wallet) return null;
     return WalletMapper.toDomain(wallet);
   }
+
   async create(data: Wallet): Promise<void> {
     const raw = WalletMapper.toPrisma(data);
-    await this.prisma.getPrismaClient().wallet.create({
+    await this.getClient().wallet.create({
       data: raw,
     });
   }
 
   async update(data: Wallet): Promise<void> {
     const raw = WalletMapper.toPrisma(data);
-    await this.prisma.getPrismaClient().wallet.update({
+    await this.getClient().wallet.update({
       where: { id: data.id },
       data: raw,
     });
