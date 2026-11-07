@@ -1,6 +1,6 @@
 # 💳 Transaction Wallet API
 
-> API robusta em NestJS e Prisma ORM para gestão de carteiras digitais, transações financeiras, fluxos avançados de autenticação (MFA e redefinição de palavra-passe) e estornos, focada em observabilidade, resiliência e conteinerização.
+> API robusta em NestJS 11 e Prisma ORM para gestão de carteiras digitais, transações financeiras, depósitos, consulta de saldo, extratos, fluxos avançados de autenticação (MFA e redefinição de palavra-passe) e estornos, focada em observabilidade, resiliência e conteinerização.
 
 ## 🛠️ Tecnologias e Ferramentas
 
@@ -9,22 +9,27 @@
 - **Base de Dados:** PostgreSQL 16
 - **Observabilidade & Logs:** Winston (`nest-winston`)
 - **Health Checks:** `@nestjs/terminus`
-- **Testes:** Jest (E2E)
+- **Rate Limiting:** `@nestjs/throttler` (100 req/min por IP)
+- **Testes:** Jest (Unitários e E2E)
 - **Infraestrutura:** Docker & Docker Compose, pgAdmin 4
 
 ## 📌 Funcionalidades Principais
 
 ### 🔐 Autenticação & Segurança
 
-- Registro (`/auth/signup`) e autenticação (`/auth/signin`) com tokens JWT (`Access Token` e `Refresh Token`).
-- Fluxo de redefinição e recuperação de palavra-passe.
+- Registo (`/auth/signup`) e autenticação (`/auth/signin`) com tokens JWT (`Access Token` e `Refresh Token` em hash argon2).
+- Fluxo de redefinição e recuperação de palavra-passe (`/auth/password_reset_request` e `/auth/password_reset`).
 - Ativação, confirmação e validação de Autenticação Multifator (MFA).
 - Encerramento de sessão (`/auth/logout`) com invalidação de refresh tokens.
+- **Rate Limiting Global:** Proteção contra ataques de força bruta via `@nestjs/throttler`.
 
-### 💰 Transações & Carteiras
+### 💰 Carteiras, Depósitos & Transações
 
-- Transferências financeiras entre carteiras com verificação de saldo em tempo real.
-- Sistema de estorno (_Reversal_) com validações de regra de negócio (prevenção de estornos duplicados e verificação de autorização do remetente).
+- **Consulta de Carteira:** Obtenção do `wallet_id` e saldo atual (`GET /wallet`).
+- **Depósitos:** Inserção de saldo na carteira (`POST /wallet/deposit`).
+- **Extrato Financeiro:** Listagem de débitos e créditos da carteira (`GET /wallet/transactions`).
+- **Transferências:** Transferências financeiras atómicas entre carteiras com débito condicional no banco (`POST /transactions/create`).
+- **Estorno (_Reversal_):** Sistema de reversão de transações atómico com validação de autorização e estado da transação (`POST /transactions/:id/reversal`).
 
 ### 📊 Observabilidade & Resiliência
 
@@ -38,12 +43,13 @@ src/
 ├── app.module.ts
 ├── main.ts
 ├── infra/
-│   ├── database/       # Conexão e serviços Prisma
+│   ├── database/        # Conexão e serviços Prisma (PrismaTransactionManager)
+│   ├── filters/         # AppErrorFilter global para tratamento de exceções
 │   ├── interceptors/    # LoggingInterceptor HTTP
 │   └── logger/          # Configuração e transportes do Winston
 └── modules/
     ├── auth/            # Módulo de Autenticação, JWT e MFA
-    ├── business/        # Casos de uso de Transações e Carteiras
+    ├── business/        # Casos de uso de Transações e Carteiras (Wallet & Transactions)
     └── health/          # Módulo de Health Check (@nestjs/terminus)
 ```
 
@@ -63,12 +69,19 @@ src/
    cd wallet
    ```
 
-2. Configure o ficheiro `.env` na raiz do projeto. Existem outras variáveis, as quais pode se procurar por process.env.:
+2. Copie o ficheiro de exemplo de variáveis de ambiente para criar o `.env`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   *Exemplo de configuração (`.env`):*
 
    ```env
    NODE_ENV=development
    PORT=3333
-   DATABASE_URL=
+   DATABASE_URL="postgresql://postgres:4l9u2i7s@localhost:5433/transaction_wallet?schema=public"
+   FRONTEND_LOCAL=http://localhost:3000
    ```
 
 3. Suba os serviços conteinerizados:
@@ -77,19 +90,26 @@ src/
    docker compose up --build -d
    ```
 
-4. Verifique se os containers estão ativos:
+4. Execute as migrações do Prisma para estruturar a base de dados:
+
+   ```bash
+   npx prisma migrate dev
+   ```
+
+5. Verifique se os containers estão ativos:
+
    ```bash
    docker ps
    ```
 
 #### 🌐 Serviços Disponíveis
 
-| Serviço          | URL / Porta                    | Credenciais Padrão          |
+| Serviço          | URL / Porta                     | Credenciais Padrão          |
 | :--------------- | :----------------------------- | :-------------------------- |
-| **API NestJS**   | `http://localhost:3333`        | -                           |
+| **API NestJS**   | `http://localhost:3333`         | -                           |
 | **Health Check** | `http://localhost:3333/health` | -                           |
-| **pgAdmin 4**    | `http://localhost:5050`        | `admin@admin.com` / `admin` |
-| **PostgreSQL**   | `localhost:5433` _(host)_      | `postgres` / `4l9u2i7s`     |
+| **pgAdmin 4**    | `http://localhost:5050`         | `admin@admin.com` / `admin` |
+| **PostgreSQL**   | `localhost:5433` *(host)*      | `postgres` / `4l9u2i7s`     |
 
 ## 🩺 Endpoint de Health Check
 
@@ -121,19 +141,19 @@ Host: localhost:3333
 }
 ```
 
-## 🧪 Execução de Testes E2E
+## 🧪 Execução de Testes
 
-Os testes de ponta a ponta (_End-to-End_) cobrem toda a suite de autenticação, MFA, transferências e estornos.
-
-Os testes correm na máquina host e comunicam com a base de dados no Docker através da porta mapeada `5433`.
-
-Execute os testes E2E:
+Os testes unitários e de ponta a ponta (*End-to-End*) cobrem toda a suite de autenticação, MFA, operações de carteira (depósito e extrato), transferências atómicas e estornos.
 
 ```bash
+# Testes Unitários
+npm run test
+
+# Testes E2E
 npm run test:e2e
 ```
 
-Exemplo de saída esperada:
+Exemplo de saída esperada (E2E):
 
 ```text
  PASS  test/app.e2e-spec.ts
@@ -149,9 +169,13 @@ Exemplo de saída esperada:
       ✓ /auth/refresh_token (POST) - deve renovar o access token
       ✓ /auth/mfa_confirm (POST) - deve confirmar e ativar o MFA com sucesso
       ✓ /auth/logout (POST) - deve terminar a sessão com sucesso
+    Wallet & Deposit Flow
+      ✓ /wallet (GET) - deve retornar as informações da carteira e saldo
+      ✓ /wallet/deposit (POST) - deve efetuar um depósito na carteira
+      ✓ /wallet/transactions (GET) - deve listar o extrato de transações
     Transaction Create Flow (E2E)
-      ✓ /transactions (POST) - deve criar uma transferência com sucesso entre carteiras
-      ✓ /transactions (POST) - deve retornar erro ao tentar transferir valor superior ao saldo
+      ✓ /transactions/create (POST) - deve criar uma transferência com sucesso entre carteiras
+      ✓ /transactions/create (POST) - deve retornar erro ao tentar transferir valor superior ao saldo
       ✓ /transactions/:id/reversal (POST) - deve reverter uma transação com sucesso
       ✓ /transactions/:id/reversal (POST) - deve retornar erro ao tentar reverter uma transação já revertida
       ✓ /transactions/:id/reversal (POST) - deve retornar 403 se um utilizador não-remetente tentar o estorno
